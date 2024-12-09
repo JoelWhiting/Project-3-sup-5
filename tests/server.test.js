@@ -1,7 +1,7 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
 const fs = require('fs');
-const { app, server } = require('../server');
+const { app, connectDB } = require('../server');
 
 /**
  * Test suite for the POST / endpoint.
@@ -9,28 +9,35 @@ const { app, server } = require('../server');
 describe('POST /', () => {
     /**
      * Connect to the test MongoDB database before running tests.
-     * @returns {Promise<void>}
+     * @function
+     * @async
+     * @returns {Promise<void>} Resolves when the connection is established.
      */
     beforeAll(async () => {
-        await mongoose.connect('mongodb://localhost:27017/express-test-db');
+        await connectDB('mongodb://localhost:27017/express-test-db');
     });
 
     /**
-     * Disconnect MongoDB and close the server after running tests.
-     * @returns {Promise<void>}
+     * Disconnect the MongoDB connection and clean up resources after tests.
+     * @function
+     * @async
+     * @returns {Promise<void>} Resolves when cleanup is complete.
      */
     afterAll(async () => {
         await mongoose.connection.close();
-        server.close(); // Close the Express server to free up the port
-        if (fs.existsSync('output.txt')) fs.unlinkSync('output.txt');
+        if (fs.existsSync('output.txt')) {
+            fs.unlinkSync('output.txt'); // Remove the test file
+        }
     });
 
     /**
-     * Test case for successful POST request.
+     * Test case for a successful POST request.
      * It verifies:
      * - Response contains the correct content.
      * - Content is written to a file.
-     * - Content is saved to the database.
+     * - Content is saved in the database.
+     * @function
+     * @async
      */
     it('should return content, write to file, and save to database', async () => {
         const payload = { content: 'Test content' };
@@ -47,11 +54,16 @@ describe('POST /', () => {
     });
 
     /**
-     * Test case for missing "content" field in the POST request.
-     * It verifies the server responds with a 400 status and appropriate error message.
+     * Test case for a failed POST request when "content" field is missing.
+     * It verifies the response status and error message.
+     * @function
+     * @async
      */
     it('should return error when content field is missing', async () => {
-        const response = await request(app).post('/').send({});
+        const response = await request(app)
+            .post('/')
+            .send({});
+
         expect(response.status).toBe(400);
         expect(response.body.message).toBe('Content field is required');
     });
