@@ -11,17 +11,22 @@ app.use(bodyParser.json());
 
 /**
  * Connect to MongoDB database.
- * @returns {Promise<void>} - A promise that resolves when the connection is successful.
+ * @function connectDB
+ * @param {string} uri - MongoDB connection string.
+ * @returns {Promise<void>} - Resolves when the connection is successful.
  */
-mongoose.connect('mongodb://localhost:27017/express-db')
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error(err));
+const connectDB = (uri) => {
+    return mongoose.connect(uri)
+        .then(() => console.log('MongoDB Connected'))
+        .catch((err) => console.error('MongoDB Connection Error:', err));
+};
 
 /**
  * POST endpoint to handle content input.
  * @route POST /
  * @param {Object} req - Express request object.
- * @param {Object} req.body - JSON body containing 'content' field.
+ * @param {Object} req.body - JSON body containing the 'content' field.
+ * @param {string} req.body.content - The content to save to a file and database.
  * @param {Object} res - Express response object.
  * @returns {Object} JSON response with the 'content' field or an error message.
  */
@@ -44,8 +49,12 @@ app.post('/', async (req, res) => {
 });
 
 /**
- * Start the server and listen on the specified port.
+ * Start the Express server and connect to the database if not in test mode.
  */
-const server = app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+if (process.env.NODE_ENV !== 'test') {
+    connectDB('mongodb://localhost:27017/express-db').then(() => {
+        app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+    });
+}
 
-module.exports = { app, server };
+module.exports = { app, connectDB };
